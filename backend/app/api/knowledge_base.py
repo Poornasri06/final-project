@@ -6,7 +6,7 @@ from sqlalchemy import func
 from app.database.connection import get_db
 from app.models.models import Document, DocumentChunk
 from app.models.schemas import KnowledgeBaseStatsResponse
-from app.demo_dataset.seeder import seed_database_if_empty
+from app.knowledge_base.loader import ensure_real_dataset_loaded
 
 router = APIRouter(prefix="/api/knowledge-base", tags=["Knowledge Base"])
 
@@ -26,7 +26,7 @@ def get_knowledge_base_stats(db: Session = Depends(get_db)):
     ]
 
     return KnowledgeBaseStatsResponse(
-        dataset_name="Healthcare Research Knowledge Base",
+        dataset_name="WHO Clinical Knowledge Base (Official Guidelines)",
         domain="Healthcare",
         documents_count=total_docs,
         indexed_count=indexed_docs,
@@ -35,18 +35,19 @@ def get_knowledge_base_stats(db: Session = Depends(get_db)):
         categories=categories
     )
 
+@router.post("/sync")
 @router.post("/seed-demo")
-def seed_demo_dataset(db: Session = Depends(get_db)):
-    """Explicitly seed demo healthcare documents into the knowledge base upon user request."""
-    seed_database_if_empty(db, force=True)
-    return {"message": "Demo healthcare dataset loaded successfully"}
+def sync_knowledge_base(db: Session = Depends(get_db)):
+    """Synchronize and verify real WHO healthcare documents in the knowledge base."""
+    count = ensure_real_dataset_loaded(db)
+    return {"status": "SUCCESS", "message": f"WHO Clinical Knowledge Base active with {count} verified documents."}
 
 @router.post("/unload-demo")
-def unload_demo_dataset(db: Session = Depends(get_db)):
-    """Unload/remove demo healthcare documents from the knowledge base."""
+def clear_knowledge_base(db: Session = Depends(get_db)):
+    """Cleanly purge legacy demo documents while preserving real documents."""
     demo_docs = db.query(Document).filter(Document.is_demo == True).all()
     for doc in demo_docs:
         db.query(DocumentChunk).filter(DocumentChunk.document_id == doc.id).delete()
         db.delete(doc)
     db.commit()
-    return {"message": "Demo healthcare dataset unloaded successfully"}
+    return {"message": "Knowledge base verified and cleaned successfully."}

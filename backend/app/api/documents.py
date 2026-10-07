@@ -21,7 +21,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def list_documents(category: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Document)
     if category and category.lower() != "all":
-        query = query.filter(Document.category == category)
+        clean_cat = category.replace("Care - ", "").replace("Care ", "").replace(" & ", " ").replace(" - ", " ").strip()
+        query = query.filter((Document.category == category) | (Document.category.ilike(f"%{clean_cat}%")))
     docs = query.order_by(Document.created_at.desc()).all()
     
     res = []

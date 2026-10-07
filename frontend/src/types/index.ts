@@ -106,6 +106,81 @@ export interface ResearchSession {
   report_id?: string;
 }
 
+export interface FormattedReportData {
+  language: string;
+  language_name: string;
+  org_title: string;
+  org_subtitle: string;
+  report_title: string;
+  question: string;
+  original_question: string;
+  domain: string;
+  research_depth: string;
+  date: string;
+  executive_summary: string;
+  methodology_steps: { step: number; title: string; desc: string }[];
+  sources: {
+    index: number;
+    title: string;
+    organization: string;
+    source_type: string;
+    quality: string;
+    publication_date: string;
+    url: string;
+  }[];
+  key_findings: { number: number; title: string; description: string; status: string }[];
+  claims_table: {
+    index: number;
+    claim: string;
+    evidence: string;
+    source: string;
+    page: string;
+    verification: string;
+  }[];
+  evidence_breakdown: {
+    index: number;
+    claim: string;
+    evidence: string;
+    source: string;
+    page: string;
+    verification: string;
+    reason: string;
+  }[];
+  source_quality: {
+    index: number;
+    source_title: string;
+    authority: string;
+    relevance: string;
+    quality_rating?: string;
+    evidence_quality?: string;
+    publication_info?: string;
+    explanation: string;
+  }[];
+  conflicts: {
+    has_conflict?: boolean;
+    topic: string;
+    evidence_a?: string;
+    source_a?: string;
+    evidence_b?: string;
+    source_b?: string;
+    explanation: string;
+    methodological_differences?: string;
+  }[];
+  confidence: {
+    rating: string;
+    score_percent: number;
+    supporting_sources_count: number;
+    contradictory_sources_count: number;
+    reasons: string[];
+  };
+  final_answer: {
+    summary: string;
+    bullet_points: string[];
+  };
+  limitations: string[];
+  disclaimer: string;
+}
+
 export interface ReportItem {
   id: string;
   session_id: string;

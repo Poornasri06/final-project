@@ -1,3 +1,4 @@
+import re
 import json
 from typing import List, Dict, Any
 from app.agents.base import BaseAgent
@@ -6,22 +7,45 @@ class ClaimExtractionAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="ClaimExtractionAgent",
-            role_description="Extracts testable, atomic healthcare factual claims from retrieved literature."
+            role_description="Extracts testable, atomic healthcare factual claims directly from retrieved WHO clinical literature."
         )
 
     def extract_claims(self, question: str, retrieved_chunks: List[Dict[str, Any]], web_sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # Check query term overlap or similarity threshold
+        stopwords = {
+            "what", "are", "the", "for", "and", "how", "with", "does", "explain", "who", "which",
+            "can", "when", "where", "from", "that", "this", "these", "those", "about", "into",
+            "over", "after", "is", "was", "were", "been", "being", "have", "has", "had", "algorithm"
+        }
+        query_words = [w for w in re.findall(r'\b[a-zA-Z]{3,}\b', question.lower()) if w not in stopwords]
+
+        valid_chunks = []
+        for c in retrieved_chunks:
+            c_text_lower = c.get("text", "").lower()
+            overlap_count = sum(1 for w in query_words if w in c_text_lower)
+            sim = c.get("similarity_score", 0)
+            
+            # Must have at least 1 meaningful keyword match from question OR high semantic similarity
+            if (overlap_count >= 1 and sim > 0.05) or (sim > 0.45 and len(query_words) == 0):
+                valid_chunks.append(c)
+
+        if not valid_chunks and not web_sources:
+            return []
+
         # Combine retrieved context
-        context_str = "\n---\n".join([c["text"] for c in retrieved_chunks[:6]])
+        context_str = "\n---\n".join([f"[{c.get('document_name', 'WHO Document')}, Page {c.get('page_number', 1)}, Section: {c.get('section', 'General')}]:\n{c['text']}" for c in valid_chunks[:6]])
         
-        prompt = f"""Extract 3 to 5 core factual medical/healthcare claims made in this literature related to the question: "{question}".
+        prompt = f"""Extract 3 to 5 core factual medical/healthcare claims made in this official WHO literature related to the question: "{question}".
+All claims must be grounded directly in the provided text.
+
 Literature Context:
 {context_str}
 
 Return JSON array format:
 [
   {{
-    "claim_text": "Exact factual claim",
-    "claim_type": "Risk Factor / Clinical Outcome / Guideline / Treatment Efficacy",
+    "claim_text": "Exact factual claim directly supported by text",
+    "claim_type": "Clinical Guideline / Diagnosis & Screening / Treatment & Management / Risk Factor / Clinical Sign",
     "subtopic": "Relevant subtopic",
     "importance": "HIGH"
   }}
@@ -30,82 +54,71 @@ Return JSON array format:
         if llm_output:
             try:
                 cleaned = llm_output.strip().strip("```json").strip("```")
-                return json.loads(cleaned)
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, list) and len(parsed) > 0:
+                    return parsed
             except Exception:
                 pass
 
-        # Heuristic claim extractor based on question domain
-        q_lower = question.lower()
+        # Dynamic Evidence-Grounded Extraction Engine (Extracts real sentences from retrieved WHO chunks)
         claims = []
+        seen_sentences = set()
 
-        if "diabetes" in q_lower or "t2d" in q_lower:
-            claims = [
-                {
-                    "claim_text": "Elevated HbA1c levels above 6.5% strongly correlate with increased microvascular complications including retinopathy and nephropathy.",
-                    "claim_type": "Clinical Outcome",
-                    "subtopic": "Glycemic Control & Complications",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": "Obesity and elevated Body Mass Index (BMI ≥ 30 kg/m²) represent the single largest modifiable risk factor for insulin resistance and Type 2 diabetes onset.",
-                    "claim_type": "Risk Factor",
-                    "subtopic": "Metabolic & Lifestyle Factors",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": "Intensive multi-component lifestyle interventions (diet + 150 min/week physical activity) achieve up to 58% risk reduction in diabetes incidence.",
-                    "claim_type": "Treatment Efficacy",
-                    "subtopic": "Prevention Guidelines",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": "Early metformin monotherapy combined with sodium-glucose cotransporter-2 (SGLT2) inhibitors reduces cardiorenal mortality in diabetic cohorts.",
-                    "claim_type": "Pharmacotherapy Guideline",
-                    "subtopic": "Clinical Outcomes",
-                    "importance": "MEDIUM"
-                }
-            ]
-        elif "hypertension" in q_lower or "blood pressure" in q_lower:
-            claims = [
-                {
-                    "claim_text": "Systolic blood pressure exceeding 140 mmHg substantially accelerates arterial stiffness and doubles 10-year stroke mortality risk.",
-                    "claim_type": "Epidemiological Metric",
-                    "subtopic": "Cardiovascular Risk",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": "Dietary sodium reduction below 2,300 mg daily yields an average 5–8 mmHg reduction in systolic blood pressure across hypertensive adults.",
-                    "claim_type": "Treatment Efficacy",
-                    "subtopic": "Lifestyle Intervention",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": "Combination anti-hypertensive therapy initiating with ACE inhibitors or ARBs plus calcium channel blockers achieves primary blood pressure targets faster than monotherapy.",
-                    "claim_type": "Clinical Guideline",
-                    "subtopic": "Pharmacotherapy",
-                    "importance": "MEDIUM"
-                }
-            ]
-        else:
-            claims = [
-                {
-                    "claim_text": f"Early screening and targeted clinical risk assessment significantly improve 5-year overall survival in cohort studies regarding {question}.",
-                    "claim_type": "Clinical Outcome",
-                    "subtopic": "Screening Efficacy",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": f"Multi-modal lifestyle modifications including dietary control and regular aerobic exercise demonstrate strong evidence in reducing chronic inflammation.",
-                    "claim_type": "Lifestyle Intervention",
-                    "subtopic": "Preventive Care",
-                    "importance": "HIGH"
-                },
-                {
-                    "claim_text": f"Adherence to standardized clinical management guidelines reduces emergency readmission rates by over 30%.",
-                    "claim_type": "Healthcare Guideline",
-                    "subtopic": "Guidelines",
-                    "importance": "MEDIUM"
-                }
-            ]
+        medical_action_verbs = [
+            "recommend", "suggest", "guideline", "treat", "diagnos", "symptom", "sign",
+            "cause", "manag", "risk", "therap", "criteri", "dose", "indicat",
+            "prevent", "associat", "result", "defin", "care", "evaluat", "assess",
+            "screen", "infect", "threshold", "reduc", "increas", "first-line", "protocol"
+        ]
+
+        for chunk in valid_chunks:
+            text = chunk.get("text", "")
+            doc_name = chunk.get("document_name", "WHO Guideline")
+            section = chunk.get("section", "Clinical Practice")
+            category = chunk.get("category", "General Healthcare")
+
+            # Split into clean sentences
+            sentences = re.split(r'(?<=[.!?])\s+', text)
+            for raw_s in sentences:
+                s = raw_s.strip()
+                # Clean bullet markers, numbers
+                s_clean = re.sub(r'^[•\-\*\d\.\)\s]+', '', s).strip()
+                s_lower = s_clean.lower()
+
+                # Must be a coherent sentence of appropriate length (50-250 chars)
+                if len(s_clean) < 45 or len(s_clean) > 300:
+                    continue
+                if s_clean in seen_sentences:
+                    continue
+
+                # Check if sentence contains clinical value and connects to medical concepts
+                has_action = any(verb in s_lower for verb in medical_action_verbs)
+                if has_action:
+                    seen_sentences.add(s_clean)
+
+                    # Determine claim type
+                    claim_type = "Clinical Guideline"
+                    if any(k in s_lower for k in ["diagnos", "criteria", "screen", "threshold", "test", "defin"]):
+                        claim_type = "Diagnostic Criteria"
+                    elif any(k in s_lower for k in ["treat", "dose", "drug", "first-line", "therap", "manag", "regimen"]):
+                        claim_type = "Treatment & Management"
+                    elif any(k in s_lower for k in ["risk", "complication", "mortality", "factor"]):
+                        claim_type = "Risk Factor & Outcomes"
+                    elif any(k in s_lower for k in ["symptom", "sign", "fever", "cough", "pain", "present"]):
+                        claim_type = "Clinical Sign & Symptom"
+
+                    claims.append({
+                        "claim_text": s_clean,
+                        "claim_type": claim_type,
+                        "subtopic": section if section != "General" else f"{category} Practice",
+                        "importance": "HIGH" if len(claims) < 2 else "MEDIUM",
+                        "source_document": doc_name,
+                        "page_number": chunk.get("page_number", 1)
+                    })
+
+                    if len(claims) >= 5:
+                        break
+            if len(claims) >= 5:
+                break
 
         return claims

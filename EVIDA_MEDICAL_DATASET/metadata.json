@@ -1,0 +1,98 @@
+[
+  {
+    "folder": "01_HOSPITAL_ADULT",
+    "filename": "WHO_IMAI_Hospital_Care_Adults.pdf",
+    "handle": "10665/70685",
+    "title": "IMAI District Clinician Manual: Hospital Care for Adolescents and Adults",
+    "category": "Hospital Adult",
+    "domain": "Hospital Medicine & Acute Care",
+    "author": "World Health Organization",
+    "publication_date": "2011",
+    "document_type": "Clinical Guideline & Manual",
+    "source_url": "https://iris.who.int/handle/10665/70685"
+  },
+  {
+    "folder": "02_HOSPITAL_CHILDREN",
+    "filename": "WHO_Pocket_Book_Hospital_Care_Children.pdf",
+    "handle": "10665/81170",
+    "title": "Pocket Book of Hospital Care for Children: Guidelines for the Management of Common Childhood Illnesses",
+    "category": "Hospital Children",
+    "domain": "Pediatrics & Child Health",
+    "author": "World Health Organization",
+    "publication_date": "2013",
+    "document_type": "Clinical Practice Guideline",
+    "source_url": "https://iris.who.int/handle/10665/81170"
+  },
+  {
+    "folder": "03_EMERGENCY_CRITICAL_CARE",
+    "filename": "WHO_SARI_Clinical_Care_Toolkit.pdf",
+    "handle": "10665/352851",
+    "title": "Clinical Care for Severe Acute Respiratory Infection: Toolkit (COVID-19 Adaptation)",
+    "category": "Emergency Critical Care",
+    "domain": "Critical Care & Pulmonology",
+    "author": "World Health Organization",
+    "publication_date": "2022",
+    "document_type": "Clinical Care Toolkit",
+    "source_url": "https://iris.who.int/handle/10665/352851"
+  },
+  {
+    "folder": "04_TUBERCULOSIS",
+    "filename": "WHO_TB_Guidelines.pdf",
+    "handle": "10665/353829",
+    "title": "WHO Consolidated Guidelines on Tuberculosis: Module 4: Treatment",
+    "category": "Tuberculosis",
+    "domain": "Infectious Diseases & Mycobacteriology",
+    "author": "World Health Organization",
+    "publication_date": "2022",
+    "document_type": "Consolidated Clinical Guideline",
+    "source_url": "https://iris.who.int/handle/10665/353829"
+  },
+  {
+    "folder": "05_HIV",
+    "filename": "WHO_HIV_Guidelines.pdf",
+    "handle": "10665/246200",
+    "title": "Consolidated Guidelines on HIV Prevention, Diagnosis, Treatment and Care for Key Populations",
+    "category": "HIV",
+    "domain": "Infectious Diseases & Virology",
+    "author": "World Health Organization",
+    "publication_date": "2016",
+    "document_type": "Consolidated Clinical Guideline",
+    "source_url": "https://iris.who.int/handle/10665/246200"
+  },
+  {
+    "folder": "06_DIABETES",
+    "filename": "WHO_Diabetes_Guidelines.pdf",
+    "handle": "10665/331710",
+    "title": "HEARTS D: Diagnosis and Management of Type 2 Diabetes",
+    "category": "Diabetes",
+    "domain": "Endocrinology & Metabolic Health",
+    "author": "World Health Organization",
+    "publication_date": "2020",
+    "document_type": "Technical Package & Clinical Protocol",
+    "source_url": "https://iris.who.int/handle/10665/331710"
+  },
+  {
+    "folder": "07_HYPERTENSION",
+    "filename": "WHO_Hypertension_Guidelines.pdf",
+    "handle": "10665/344424",
+    "title": "Guideline for the Pharmacological Treatment of Hypertension in Adults",
+    "category": "Hypertension",
+    "domain": "Cardiovascular Health & Primary Care",
+    "author": "World Health Organization",
+    "publication_date": "2021",
+    "document_type": "Clinical Practice Guideline",
+    "source_url": "https://iris.who.int/handle/10665/344424"
+  },
+  {
+    "folder": "08_NUTRITION",
+    "filename": "WHO_Nutrition_Guidelines.pdf",
+    "handle": "10665/374925",
+    "title": "Carbohydrate Intake for Adults and Children: WHO Guideline Summary",
+    "category": "Nutrition",
+    "domain": "Public Health Nutrition & Chronic Disease Prevention",
+    "author": "World Health Organization",
+    "publication_date": "2023",
+    "document_type": "Evidence-Based Nutritional Guideline",
+    "source_url": "https://iris.who.int/handle/10665/374925"
+  }
+]

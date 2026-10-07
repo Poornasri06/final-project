@@ -38,9 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, onNavigate }) =
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full font-medium backdrop-blur-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> DEMO DATASET ACTIVE
-          </div>
+
           
           <button
             onClick={() => onNavigate('new-research')}

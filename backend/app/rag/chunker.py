@@ -15,12 +15,16 @@ class RecursiveStructureChunker:
             with open(file_path, "rb") as f:
                 reader = PyPDF2.PdfReader(f)
                 for idx, page in enumerate(reader.pages):
-                    raw_text = page.extract_text() or ""
+                    try:
+                        raw_text = page.extract_text() or ""
+                    except Exception:
+                        raw_text = ""
                     cleaned = self.clean_text(raw_text)
-                    pages_content.append({
-                        "page_number": idx + 1,
-                        "text": cleaned
-                    })
+                    if cleaned:
+                        pages_content.append({
+                            "page_number": idx + 1,
+                            "text": cleaned
+                        })
         except Exception as e:
             raise ValueError(f"Failed to extract PDF content: {str(e)}")
         return pages_content

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import type { DocumentItem, KnowledgeBaseStats, DocumentChunkItem } from '../types';
-import { X, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, X } from 'lucide-react';
 
 export const KnowledgeBasePage: React.FC = () => {
   const [stats, setStats] = useState<KnowledgeBaseStats | null>(null);
@@ -33,16 +33,10 @@ export const KnowledgeBasePage: React.FC = () => {
     }
   };
 
-  const hasDemoDocs = documents.some((d) => d.is_demo);
-
-  const handleToggleDemoDataset = async () => {
+  const handleSyncKnowledgeBase = async () => {
     setIsSeedingDemo(true);
     try {
-      if (hasDemoDocs) {
-        await api.unloadDemoDataset();
-      } else {
-        await api.seedDemoDataset();
-      }
+      await api.seedDemoDataset();
       await loadData();
     } catch (e) {
       console.error(e);
@@ -90,37 +84,24 @@ export const KnowledgeBasePage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-            Healthcare Knowledge Base
+            WHO Clinical Knowledge Base
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
-              Database Ready
+              Verified Guidelines
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Database-backed document management and pgvector structure-aware chunks.
+            Official World Health Organization clinical guidelines, structured chunk provenance, and dense vector embeddings.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handleToggleDemoDataset}
+            onClick={handleSyncKnowledgeBase}
             disabled={isSeedingDemo}
-            className={`px-4 py-2.5 font-bold text-xs rounded-xl border transition-colors flex items-center gap-2 ${
-              hasDemoDocs
-                ? 'bg-amber-100/80 hover:bg-amber-200 text-amber-900 border-amber-300'
-                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
-            }`}
+            className="px-4 py-2.5 font-bold text-xs rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 transition-colors flex items-center gap-2"
           >
-            {hasDemoDocs ? (
-              <>
-                <Trash2 className="w-4 h-4 text-amber-700" />
-                {isSeedingDemo ? 'Unloading Demo Dataset...' : 'Unload Demo Dataset'}
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-amber-600" />
-                {isSeedingDemo ? 'Loading Demo Dataset...' : 'Load Demo Dataset'}
-              </>
-            )}
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            {isSeedingDemo ? 'Syncing Knowledge Base...' : 'Sync WHO Knowledge Base'}
           </button>
 
           <button
@@ -154,7 +135,7 @@ export const KnowledgeBasePage: React.FC = () => {
 
       {/* Category Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
-        {['All', 'Diabetes', 'Cardiovascular Disease', 'Hypertension', 'General Healthcare'].map((cat) => (
+        {['All', 'Hospital Adult', 'Hospital Children', 'Emergency Critical Care', 'Tuberculosis', 'HIV', 'Diabetes', 'Hypertension', 'Nutrition'].map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -300,10 +281,14 @@ export const KnowledgeBasePage: React.FC = () => {
                   onChange={(e) => setUploadCategory(e.target.value)}
                   className="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50"
                 >
+                  <option value="Hospital Adult">Hospital Adult</option>
+                  <option value="Hospital Children">Hospital Children</option>
+                  <option value="Emergency Critical Care">Emergency Critical Care</option>
+                  <option value="Tuberculosis">Tuberculosis</option>
+                  <option value="HIV">HIV</option>
                   <option value="Diabetes">Diabetes</option>
-                  <option value="Cardiovascular Disease">Cardiovascular Disease</option>
                   <option value="Hypertension">Hypertension</option>
-                  <option value="General Healthcare">General Healthcare</option>
+                  <option value="Nutrition">Nutrition</option>
                 </select>
               </div>
 

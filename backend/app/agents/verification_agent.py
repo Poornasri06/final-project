@@ -6,14 +6,22 @@ class EvidenceVerificationAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="EvidenceVerificationAgent",
-            role_description="Cross-verifies claims against retrieved domain chunks and classifies relationships into SUPPORTED, PARTIALLY_SUPPORTED, UNSUPPORTED, or CONTRADICTED."
+            role_description="Cross-verifies claims against retrieved WHO domain chunks and classifies relationships into SUPPORTED, PARTIALLY_SUPPORTED, UNSUPPORTED, or CONTRADICTED."
         )
 
     def verify_claim(self, claim_text: str, candidate_chunks: List[Dict[str, Any]], web_sources: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Classify factual support relationship between a claim and retrieved sources."""
         all_sources = candidate_chunks + web_sources
 
-        prompt = f"""Evaluate this claim against the retrieved evidence:
+        if not all_sources:
+            return {
+                "verification_status": "UNSUPPORTED",
+                "confidence_score": 0.0,
+                "reasoning": "Insufficient evidence was found in the current healthcare knowledge base.",
+                "evidence_items": []
+            }
+
+        prompt = f"""Evaluate this claim against the retrieved WHO evidence:
 Claim: "{claim_text}"
 
 Evidence Chunks:
@@ -24,69 +32,88 @@ Return JSON:
   "verification_status": "SUPPORTED | PARTIALLY_SUPPORTED | UNSUPPORTED | CONTRADICTED",
   "confidence_score": 0.85,
   "reasoning": "Detailed breakdown explaining why the evidence supports, partially supports, or contradicts the claim.",
-  "matched_evidence_indices": [0, 1]
+  "matched_evidence_indices": [0]
 }}"""
         llm_output = self.call_llm(prompt)
         if llm_output:
             try:
                 cleaned = llm_output.strip().strip("```json").strip("```")
-                return json.loads(cleaned)
+                res = json.loads(cleaned)
+                if "verification_status" in res:
+                    matched_idx = res.get("matched_evidence_indices", [0])
+                    matched_evidence = []
+                    for mi in matched_idx:
+                        if isinstance(mi, int) and 0 <= mi < len(all_sources):
+                            src = all_sources[mi]
+                            matched_evidence.append({
+                                "evidence_text": src.get("text") or src.get("snippet", ""),
+                                "source_title": src.get("document_name") or src.get("title", "WHO Clinical Guideline"),
+                                "source_url": src.get("source_url") or src.get("url", "https://iris.who.int"),
+                                "page_number": src.get("page_number", 1),
+                                "section": src.get("section", "Clinical Recommendation"),
+                                "relationship_type": res.get("verification_status", "SUPPORTED")
+                            })
+                    res["evidence_items"] = matched_evidence
+                    return res
             except Exception:
                 pass
 
-        # Domain heuristic evaluation engine
+        # Deterministic evidence matching engine
         claim_lower = claim_text.lower()
         matched_evidence = []
-        status = "SUPPORTED"
-        confidence = 0.92
+        status = "UNSUPPORTED"
+        confidence = 0.0
 
-        # Check for matching chunks
+        claim_words = [w.strip(".,;:()\"'") for w in claim_lower.split() if len(w) > 4]
+
         for idx, src in enumerate(all_sources):
             src_text = (src.get("text") or src.get("snippet") or "").lower()
-            
-            # Key matching logic
-            matching_terms = [w for w in claim_lower.split() if len(w) > 5 and w in src_text]
-            if len(matching_terms) >= 2:
+            if not src_text:
+                continue
+
+            # Exact sentence / substring containment
+            if claim_lower in src_text or (len(claim_lower) > 50 and claim_lower[:50] in src_text):
                 matched_evidence.append({
                     "evidence_text": src.get("text") or src.get("snippet"),
-                    "source_title": src.get("document_name") or src.get("title", "Healthcare Source"),
-                    "source_url": src.get("source_url") or src.get("url", ""),
+                    "source_title": src.get("document_name") or src.get("title", "World Health Organization"),
+                    "source_url": src.get("source_url") or src.get("url", "https://iris.who.int"),
                     "page_number": src.get("page_number", 1),
-                    "section": src.get("section", "Clinical Findings"),
+                    "section": src.get("section", "Clinical Guidance"),
                     "relationship_type": "SUPPORTED"
                 })
+                status = "SUPPORTED"
+                confidence = 0.95
+                continue
+
+            # Multi-keyword overlap
+            matching_terms = [w for w in claim_words if w in src_text]
+            overlap_ratio = len(matching_terms) / (len(claim_words) or 1)
+
+            if overlap_ratio >= 0.40 or len(matching_terms) >= 3:
+                rel = "SUPPORTED" if overlap_ratio >= 0.60 else "PARTIALLY_SUPPORTED"
+                matched_evidence.append({
+                    "evidence_text": src.get("text") or src.get("snippet"),
+                    "source_title": src.get("document_name") or src.get("title", "World Health Organization"),
+                    "source_url": src.get("source_url") or src.get("url", "https://iris.who.int"),
+                    "page_number": src.get("page_number", 1),
+                    "section": src.get("section", "Clinical Guidance"),
+                    "relationship_type": rel
+                })
+                if status != "SUPPORTED":
+                    status = rel
+                    confidence = 0.92 if rel == "SUPPORTED" else 0.78
 
         if not matched_evidence:
-            # Check if partially supported or unsupported
-            if "lifestyle" in claim_lower or "exercise" in claim_lower:
-                status = "PARTIALLY_SUPPORTED"
-                confidence = 0.75
-                matched_evidence.append({
-                    "evidence_text": "Observational trial data indicates moderate adherence to diet and exercise reduces metabolic risk, though optimal frequency remains variable.",
-                    "source_title": "ADA Diabetes Clinical Practice Guidelines",
-                    "source_url": "https://diabetes.org/guidelines",
-                    "page_number": 14,
-                    "section": "Lifestyle Management",
-                    "relationship_type": "PARTIALLY_SUPPORTED"
-                })
-            elif "monotherapy" in claim_lower or "unsupported" in claim_lower:
-                status = "UNSUPPORTED"
-                confidence = 0.40
-            else:
-                status = "SUPPORTED"
-                confidence = 0.88
-                matched_evidence.append({
-                    "evidence_text": f"Clinical guideline evidence directly confirms: {claim_text[:120]}...",
-                    "source_title": "General Healthcare Practice Guidelines",
-                    "source_url": "https://www.ncbi.nlm.nih.gov/pmc",
-                    "page_number": 8,
-                    "section": "Risk Factor Analysis",
-                    "relationship_type": "SUPPORTED"
-                })
+            return {
+                "verification_status": "UNSUPPORTED",
+                "confidence_score": 0.0,
+                "reasoning": "Insufficient evidence was found in the current healthcare knowledge base.",
+                "evidence_items": []
+            }
 
         return {
             "verification_status": status,
             "confidence_score": confidence,
-            "reasoning": f"Evidence evaluated across {len(all_sources)} candidate sources. Claim displays {status.lower().replace('_', ' ')} alignment with clinical guidelines.",
+            "reasoning": f"Claim verified directly against {len(matched_evidence)} indexed WHO guideline evidence chunk(s). Factual assertions align with official recommendations.",
             "evidence_items": matched_evidence
         }

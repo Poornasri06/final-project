@@ -39,3 +39,8 @@ pnpm-debug.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+test_*.pdf
+backend/scripts/*.pdf
+

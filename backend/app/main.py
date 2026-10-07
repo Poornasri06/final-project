@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database.connection import engine, Base, SessionLocal
-from app.demo_dataset.seeder import seed_database_if_empty
+from app.knowledge_base.loader import ensure_real_dataset_loaded
 from app.api.auth import router as auth_router
 from app.api.documents import router as documents_router
 from app.api.research import router as research_router
@@ -44,6 +44,11 @@ def startup_event():
     logger.info("Initializing database schema...")
     try:
         Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            ensure_real_dataset_loaded(db)
+        finally:
+            db.close()
         logger.info("Application startup complete. Ready for evidence verification requests.")
     except Exception as e:
         logger.error(f"Startup database initialization error: {str(e)}")

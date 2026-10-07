@@ -1,5 +1,4 @@
 import React from 'react';
-import { WorkflowComparison } from '../components/WorkflowComparison';
 import { ShieldCheck, Search, Activity, BookOpen, CheckCircle2 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -55,9 +54,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
           </blockquote>
         </div>
       </div>
-
-      {/* Interactive Workflow Comparison Section */}
-      <WorkflowComparison />
 
       {/* Feature Highlights Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">

@@ -199,3 +199,41 @@ def get_research_report(id: str, db: Session = Depends(get_db)):
         created_at=report.created_at.strftime("%Y-%m-%d %H:%M"),
         citations=citations
     )
+
+@router.get("/{id}/formatted-report")
+def get_formatted_research_report(
+    id: str,
+    lang: str = Query("en", description="Report language: 'en' for English, 'ta' for Tamil"),
+    db: Session = Depends(get_db)
+):
+    from app.services.report_formatter import StructuredReportData
+    session = db.query(ResearchSession).filter(ResearchSession.id == id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Research session not found")
+    
+    return StructuredReportData.build(session, lang=lang)
+
+@router.get("/{id}/pdf")
+def download_research_report_pdf(
+    id: str,
+    lang: str = Query("en", description="Report language: 'en' for English, 'ta' for Tamil"),
+    db: Session = Depends(get_db)
+):
+    from fastapi.responses import Response
+    from app.services.report_formatter import StructuredReportData
+    from app.services.pdf_generator import PDFReportGenerator
+    
+    session = db.query(ResearchSession).filter(ResearchSession.id == id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Research session not found")
+        
+    data = StructuredReportData.build(session, lang=lang)
+    pdf_bytes = PDFReportGenerator.generate_pdf(data)
+    
+    filename = f"EVIDA_Clinical_Report_{id[:8]}.pdf"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "Content-Type": "application/pdf"
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
+

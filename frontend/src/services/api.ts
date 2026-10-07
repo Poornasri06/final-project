@@ -1,5 +1,5 @@
 import type {
-  DocumentItem, DocumentChunkItem, ResearchSession, ReportItem,
+  DocumentItem, DocumentChunkItem, ResearchSession, ReportItem, FormattedReportData,
   KnowledgeBaseStats, EvaluationMetrics
 } from '../types';
 
@@ -13,11 +13,18 @@ export const api = {
     return res.json();
   },
 
-  async seedDemoDataset(): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/knowledge-base/seed-demo`, {
+  async syncKnowledgeBase(): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/knowledge-base/sync`, {
       method: 'POST'
     });
-    if (!res.ok) throw new Error('Failed to seed demo dataset');
+    if (!res.ok) throw new Error('Failed to sync knowledge base');
+  },
+
+  async seedDemoDataset(): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/knowledge-base/sync`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to sync knowledge base');
   },
 
   async unloadDemoDataset(): Promise<void> {
@@ -97,6 +104,31 @@ export const api = {
     const res = await fetch(`${API_BASE_URL}/research/${id}/report`);
     if (!res.ok) throw new Error('Failed to fetch research report');
     return res.json();
+  },
+
+  async getFormattedResearchReport(id: string, lang: string = 'en'): Promise<FormattedReportData> {
+    const res = await fetch(`${API_BASE_URL}/research/${id}/formatted-report?lang=${lang}`);
+    if (!res.ok) throw new Error('Failed to fetch formatted research report');
+    return res.json();
+  },
+
+  getReportPdfUrl(id: string, lang: string = 'en'): string {
+    return `${API_BASE_URL}/research/${id}/pdf?lang=${lang}`;
+  },
+
+  async downloadReportPdf(id: string, lang: string = 'en'): Promise<void> {
+    const url = `${API_BASE_URL}/research/${id}/pdf?lang=${lang}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to generate PDF report');
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `EVIDA_Clinical_Report_${id.slice(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
   },
 
   // Evaluation

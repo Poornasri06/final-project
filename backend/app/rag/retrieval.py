@@ -22,7 +22,12 @@ class VectorRetrievalService:
         # Fetch candidate chunks from DB
         query_builder = self.db.query(DocumentChunk).join(Document)
         if category_filter and category_filter.lower() != "all":
-            query_builder = query_builder.filter(DocumentChunk.category == category_filter)
+            # Normalize common category name variations
+            clean_cat = category_filter.replace("Care - ", "").replace("Care ", "").replace(" & ", " ").replace(" - ", " ").strip()
+            query_builder = query_builder.filter(
+                (DocumentChunk.category == category_filter) |
+                (DocumentChunk.category.ilike(f"%{clean_cat}%"))
+            )
             
         candidate_chunks = query_builder.all()
         

@@ -15,11 +15,14 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({ onStartResearc
   const [categoryFilter, setCategoryFilter] = useState('All');
 
   const exampleQuestions = [
-    "What are the major risk factors associated with Type 2 diabetes?",
-    "What evidence exists regarding lifestyle interventions for hypertension?",
-    "What are the commonly reported complications of diabetes?",
-    "What factors are associated with cardiovascular disease?",
-    "What evidence supports early screening for hypertension?"
+    "What are the common causes of fever requiring hospital evaluation?",
+    "What are the signs of severe respiratory illness?",
+    "What is tuberculosis and how is it diagnosed?",
+    "What are the symptoms and diagnostic criteria for Type 2 diabetes?",
+    "What is hypertension and what are its pharmacological treatment guidelines?",
+    "What are common symptoms and first-line treatment for HIV infection?",
+    "What are common childhood illnesses requiring hospital care?",
+    "What are WHO dietary guidelines on carbohydrates and healthy diets?"
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -184,10 +187,14 @@ export const NewResearchPage: React.FC<NewResearchPageProps> = ({ onStartResearc
               className="p-1.5 bg-slate-50 border border-slate-300 rounded text-xs text-slate-800"
             >
               <option value="All">All Categories</option>
+              <option value="Hospital Adult">Hospital Adult</option>
+              <option value="Hospital Children">Hospital Children</option>
+              <option value="Emergency Critical Care">Emergency Critical Care</option>
+              <option value="Tuberculosis">Tuberculosis</option>
+              <option value="HIV">HIV</option>
               <option value="Diabetes">Diabetes</option>
-              <option value="Cardiovascular Disease">Cardiovascular Disease</option>
               <option value="Hypertension">Hypertension</option>
-              <option value="General Healthcare">General Healthcare</option>
+              <option value="Nutrition">Nutrition</option>
             </select>
           </div>
 

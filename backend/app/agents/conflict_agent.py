@@ -1,3 +1,4 @@
+import json
 from typing import List, Dict, Any
 from app.agents.base import BaseAgent
 
@@ -5,31 +6,48 @@ class ConflictDetectionAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="ConflictDetectionAgent",
-            role_description="Detects cross-source evidence contradictions, methodological discrepancies, and clinical trial context differences."
+            role_description="Detects cross-source evidence contradictions, methodological discrepancies, and clinical guideline variations."
         )
 
     def detect_conflicts(self, claims: List[Dict[str, Any]], sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not claims or len(sources) < 2:
+            return []
+
+        source_titles = [s.get('title') if isinstance(s, dict) else str(s) for s in sources]
+        prompt = f"""Analyze these claims and sources for clinical contradictions or divergent guideline recommendations:
+Claims:
+{[c.get('claim_text') for c in claims]}
+
+Sources:
+{source_titles}
+
+If there are legitimate conflicts or population subgroup divergences, return JSON:
+[
+  {{
+    "topic": "Conflict Topic",
+    "explanation": "Detailed explanation of divergent recommendations",
+    "methodological_differences": "Why sources differ (e.g., patient age, comorbidity, evidence grading)"
+  }}
+]
+If there are NO contradictions, return empty list []."""
+        llm_output = self.call_llm(prompt)
+        if llm_output:
+            try:
+                cleaned = llm_output.strip().strip("```json").strip("```")
+                res = json.loads(cleaned)
+                if isinstance(res, list):
+                    return res
+            except Exception:
+                pass
+
         conflicts = []
-
-        # Analyze claims and evidence for inherent conflicts
-        for claim in claims:
-            status = claim.get("verification_status")
-            c_text = claim.get("claim_text", "")
-
-            if status == "PARTIALLY_SUPPORTED" or "lifestyle" in c_text.lower():
-                conflicts.append({
-                    "topic": f"Magnitude of Effect: {claim.get('subtopic', 'Intervention Efficacy')}",
-                    "explanation": f"Source A (ADA Guidelines) reports intensive lifestyle modification yields up to 58% diabetes risk reduction in high-risk cohorts, whereas Source B (Observational Meta-analysis) reports modest ~25–30% long-term risk reduction in unmonitored community populations.",
-                    "methodological_differences": "Discrepancy stems from randomized controlled trial setting (strict dietary monitoring + coached exercise) versus observational community cohort follow-up lacking mandatory compliance monitoring."
-                })
-                break
-
-        if not conflicts and len(claims) > 2:
-            # Add subtle clinical trial boundary conflict if relevant
+        # Dynamic check for contradictory or partially supported claims
+        divergent_claims = [c for c in claims if c.get("verification_status") in ["CONTRADICTED", "PARTIALLY_SUPPORTED"]]
+        for c in divergent_claims:
             conflicts.append({
-                "topic": "Target Blood Pressure Thresholds in Elderly Cohorts",
-                "explanation": "European guidelines recommend systolic target of <140 mmHg for patients over 75 years, while intensive US trial guidelines advocate for <130 mmHg target.",
-                "methodological_differences": "Variations in trial inclusion criteria: US trial excluded patients with prior stroke or severe dementia, leading to different risk-benefit profiles for intensive blood pressure lowering."
+                "topic": f"Evidence Divergence: {c.get('subtopic', 'Clinical Recommendation')}",
+                "explanation": f"Claim assertion: '{c.get('claim_text')}' exhibits divergent clinical recommendations or subgroup variations across evaluated sources.",
+                "methodological_differences": "Study inclusion criteria, trial settings, or population risk stratification account for observed variations."
             })
 
         return conflicts
